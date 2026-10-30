@@ -28,7 +28,15 @@ The top-level README explains the 2-phase split (outside JIT = build + size; ins
 
 ## JIT placement rule
 
-The only `@jax.jit` sites in the package are `select._select_edges_kernel` (CPU-pinned, host-side selection) `predict.predict_fn` (forward, default device) and `metatomic.get_atomic_energies_fn`'s `energies_fn` (the same forward on an engine's pair vectors, for `UPETModel`; outside JIT, metatomic's `JaxModel` differentiates through it). Every other helper is undecorated and traced into whichever entry point calls it. **Do not add `@jax.jit` elsewhere** — nesting jit inside `predict_fn` defeats the trace-once-then-execute model and silently inflates compile times.
+`@jax.jit` goes on entry points only: functions called from host (eager) code, never from inside another jitted function. There are three, one per caller:
+
+- `select._select_edges_kernel`: the CPU-pinned, host-side selection that sizes `k_sel`.
+- `predict.predict_fn`: the calculator's forward, energy and its derivatives in one compiled program.
+- `metatomic.get_forward_fn`'s `forward_fn`: the same selection and model for `UPETModel`, on the engine's pair vectors. It returns the energy (and direct heads) only. metatomic's `JaxModel` differentiates it from outside, eagerly, with `jax.vjp`, which compiles the backward pass of a jitted function too, so forces and stress do not run op by op.
+
+`forward_fn` is not a variant of `predict_fn`. `predict_fn` owns its `value_and_grad` and re-derives `R_ij` from cell shifts, while under `JaxModel` the derivative has to be taken by metatomic, through the engine's vectors, so that the gradients land on the engine's positions and strain. Jitting the whole `JaxModel` call instead is not possible: it builds `metatensor` metadata in Python around the arrays.
+
+Every other helper is undecorated and traced into whichever entry point calls it. **Do not add `@jax.jit` elsewhere**: a jit nested inside an entry point is inlined at best, and at worst (a closure rebuilt per call) silently retraces and inflates compile times. A new caller of the forward gets its own entry point, next to its host-side code, built by a `get_*_fn` factory so the trace-time constants are closured once.
 
 ## Key invariant
 
