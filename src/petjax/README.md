@@ -28,7 +28,7 @@ The top-level README explains the 2-phase split (outside JIT = build + size; ins
 
 ## JIT placement rule
 
-The only `@jax.jit` sites in the package are `select._select_edges_kernel` (CPU-pinned, host-side selection) and `predict.predict_fn` (forward, default device). Every other helper is undecorated and traced into whichever entry point calls it. **Do not add `@jax.jit` elsewhere** — nesting jit inside `predict_fn` defeats the trace-once-then-execute model and silently inflates compile times.
+The only `@jax.jit` sites in the package are `select._select_edges_kernel` (CPU-pinned, host-side selection) `predict.predict_fn` (forward, default device) and `metatomic.get_atomic_energies_fn`'s `energies_fn` (the same forward on an engine's pair vectors, for `UPETModel`; outside JIT, metatomic's `JaxModel` differentiates through it). Every other helper is undecorated and traced into whichever entry point calls it. **Do not add `@jax.jit` elsewhere** — nesting jit inside `predict_fn` defeats the trace-once-then-execute model and silently inflates compile times.
 
 ## Key invariant
 

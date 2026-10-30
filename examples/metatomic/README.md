@@ -1,0 +1,11 @@
+# pet-jax as a metatomic model
+
+`petjax.metatomic.UPETModel` wraps a pet-jax checkpoint as a `metatomic.JaxModel`, so any metatomic engine can drive it. It needs `metatomic-core` with `JaxModel` (currently [EricBoittier/metatomic#15](https://github.com/EricBoittier/metatomic/pull/15)), and `metatensor-core` with JAX array support ([EricBoittier/metatensor#1](https://github.com/EricBoittier/metatensor/pull/1)) to keep the outputs as JAX arrays; without it they are copied to NumPy.
+
+```bash
+python run_metatomic.py ../../tests/assets/checkpoints/pet-mad-xs
+```
+
+The model asks for one full pair list at the trained cutoff. Inside `forward` it sorts and pads that list into the layout `UPETCalculator` uses, sizes `k_sel` on the host from the current geometry (so the selection never overflows), and runs the adaptive selection and `UPET` on the engine's pair vectors in one jitted call. `JaxModel` differentiates through the pair vectors for the `positions` and `strain` gradients.
+
+Not supported yet: direct force/stress heads, charge/spin conditioned checkpoints, and the `express` switches that need extra inputs or sizing (`neighbor_list="device"`, `seed_cutoffs`, `tokens="flat"`, `atom_block`).

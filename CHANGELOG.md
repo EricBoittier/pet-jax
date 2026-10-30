@@ -8,6 +8,7 @@ Every PR that changes something a user can see adds a line under **Unreleased**,
 
 ### Added
 
+- `petjax.metatomic.UPETModel`: a pet-jax checkpoint as a metatomic model, through `metatomic-core`'s `JaxModel`. It takes the engine's full pair list at the trained cutoff and returns `energy` (per system or per atom, with `selected_atoms`); forces and stress come from `JaxModel`'s autodiff. Matches `UPETCalculator` on the mini set in fp64. See `examples/metatomic`.
 - `Backbone` takes `final_message_passing` (default `True`). With it off, the reverse-edge message passing after the last GNN layer is skipped. `metatrain` has no equivalent, so such a model is not exportable.
 - `Backbone` gains two hooks for architectures built on the PET backbone, such as FlashMD: `species_embedding=False` drops the species embedding table and takes the initial node features as a `node_features` input instead, and the `cutoff_function` attribute (default `cutoff_bump`; `cutoff_cosine` is new in `petjax.utils`) picks the cutoff. Both default to the current behaviour.
 - `pack_edges` takes optional per-pair `pair_cutoffs` and packs them with the pairs. Without them the model's scalar cutoff applies, as before.
